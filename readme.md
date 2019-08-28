@@ -1,15 +1,13 @@
 
 # MMM-pages
 
-This [MagicMirror²][mm] Module allows you to have pages in your magic mirror!
-Want to have more modules in your magic mirror, but want to keep the format?
-Or, want to have grouped modules that are themed together? Look no further!
+This [MagicMirror²][mm] Module is a fork of the Original [MMM-Pages][pages] module by Edward Shen.
+This module allows you to have pages in your magic mirror! You can specify which modules are on what page.
+This allows you to have pages with different modules, for example let's say you wanted the current weather
+and forcast to be on the same page and then on another page you wanted the same modules but for a different locations.
+I made the modificiations to the original because I needed this specific scenario and didn't find an alternative.
 
-[Click here to see an example of it in action!][example_url]
-
-Note that this module does not provide any method of manually changing the page!
-You should ask other developers to add a notification to their modules, or add
-one yourself!
+![](mmm-pages.gif)
 
 ## Installation
 
@@ -20,80 +18,44 @@ cd ~/MagicMirror/modules
 ```
 Clone this repository:
 ```bash
-git clone https://github.com/edward-shen/MMM-pages.git
+git clone https://github.com/rfoltz/MMM-pages.git
 ```
 Configure the module in your config.js file.
 
-*\<self-promotion>*
-
-To display what page you're on, I'd highly recommend checking out my
-[page indicator module][page indicator].
-
-*\<\\self-promotion>*
-
 ## Using the module
 
-To use this module, add it to the modules array in the `config/config.js` file:
+To use this module, add it to the modules array in the `config/config.js` file. You also need to add a `page:` key to every module you would like on a page. For exmaple below if I wanted the clock module on the first page I would put it on page 0.
 ```js
 modules: [
     {
         module: 'MMM-pages',
         config: {
-                modules:
-                    [[ "weatherforecast", "newsfeed"],
-                     [ "calendar", "compliments" ]],
-                fixed: ["clock", "currentweather", "MMM-page-indicator"],
+            numPages: 3,
+            rotationTime: 1000
+        }
+    },
+    {
+        module: "clock",
+        position: "middle_center",
+        config: {
+            showDate: true,
+            page: 0
         }
     }
+
 ]
 ```
 
 ## Configuration options
 
 | Option          | Type               | Default Value            | Description |
-| --------------- | ------------------ | ------------------------ | --------- |
-| `modules`       | `[[String...]...]` | `[]`                     | A 2D String array of what each module should be on which page. Notethat all entries must take their class name (e.g. this module's class name is `MMM-pages`, while the default modules may just have `newsfeed`, without the `MMM-` prefix. |
-| `excludes`      | *None*             | *None*                   | **Deprecated** Use `fixed` instead. |
-| `fixed`         | `[String...]`      | `["MMM-page-indicator"]` | Which modules should show up all the time. |
+| --------------- | ------------------ | ------------------------ | ----------- |
 | `animationTime` | `int`              | `1000`                   | Fading animation time. Set to `0` for instant change. Value is in milliseconds (1 second = 1000 milliseconds). |
-| `rotationTime`  | `int`              | `0`                      | Time, in milliseconds, between automatic page changes. |
-| `delayTime`     | `int`              | `0`                      | Time, in milliseconds, of how long should a manual page change linger before returning to automatic page changing. In other words, how long should the timer wait for after you manually change a page. This does include the animation time, so you may wish to increase it by a few seconds or so to account for the animation time. |
+| `rotationTime`  | `int`              | `1000`                      | Time, in milliseconds, between automatic page changes. |
+| `delayTime`     | `int`              | `1000`                      | Time, in milliseconds, of how long should a manual page change linger before returning to automatic page changing. In other words, how long should the timer wait for after you manually change a page. This does include the animation time, so you may wish to increase it by a few seconds or so to account for the animation time. |
 
-For the `module` configuration option, the first element of the outer array
-should consist of elements that should be on the first page. The second element
-should consist of elements that should be on the second page, and so forth.
+Don't forget to add the `page:` key to the modules you would like to display like in the example above.
 
-## Regarding notifications
-
-This module responds to the notification `PAGE_CHANGED`. The payload should be
-an `integer`. Note that this has strict error checking, so `"3"` will not work,
-while `3` will. Also do note that to switch to page 1, you need to send `0` to
-the module. **This uses a zero-based numbering system.**
-
-Let's say that you want to change the indicator to page 3. In your code, you
-would write:
-```js
-this.sendNotification("PAGE_CHANGED", 2);
-```
-This would cause the module to change show that you are on page 3.
-
-You can also just send `PAGE_INCREMENT` or `PAGE_DECREMENT` without any payloads
-to have the module change the displayed page by one. If you attach a payload to 
-these commands, it will attempt to the nth next page or nth previous page.
-
-This module keeps internal track of how many pages you have, defined by your
-config in the config file. There is no way to dynamically change the pages you
-have. If there arises a need, please create an issue.
-
-This module sends one notification, `MAX_PAGES_CHANGED` to assist display
-modules with how many pages they should display. However, this module does not
-enforce what page other modules should indicate. This is intentional, because
-any other module that needs a page change notification should be receiving from
-the notification system.
-
-Finally, if you want to know what page you're currently on, send a `QUERY_PAGE_NUMBER`
-notification. The module will respond with a `PAGE_NUMBER_IS` notification,
-with the payload of the current page number.
 
 ## FAQ
 
@@ -115,6 +77,5 @@ with the payload of the current page number.
 
   Please make an issue. Thanks!
 
-[example_url]: https://www.youtube.com/watch?v=1NQ-sGtdUdg
 [mm]: https://github.com/MichMich/MagicMirror
-[page indicator]: https://github.com/edward-shen/MMM-page-indicator
+[pages]: https://github.com/edward-shen/MMM-pages

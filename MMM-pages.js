@@ -1,19 +1,11 @@
 Module.register('MMM-pages', {
-
-  // We require the older style of function declaration for compatibility
-  // reasons.
-
   /**
-   * By default, we have don't pseudo-paginate any modules. We also exclude
-   * the page indicator by default, in case people actually want to use the
-   * sister module. We also don't rotate out modules by default.
+   * By default, we rotate out modules by default.
    */
   defaults: {
-    modules: [],
-    excludes: [], // Keep for compatibility
-    fixed: ['MMM-page-indicator'],
+    numPages: 2,
     animationTime: 1000,
-    rotationTime: 0,
+    rotationTime: 1000,
     rotationDelay: 10000
   },
 
@@ -41,58 +33,39 @@ Module.register('MMM-pages', {
    */
   start: function() {
     this.curPage = 0;
+    this._modules = [] //Create an array empty array to fill later
 
-    // Compatibility
-    if (this.config.excludes.length) {
-      Log.warn('[Pages]: The config option "excludes" is deprecated. Please use "fixed" instead.');
-      this.config.fixed = this.config.excludes;
-    }
 
     // Disable rotation if an invalid input is given
     this.config.rotationTime = Math.max(this.config.rotationTime, 0);
     this.config.rotationDelay = Math.max(this.config.rotationDelay, 0);
   },
 
+
   /**
    * Handles incoming notifications. Responds to the following:
-   *   'PAGE_CHANGED' - Set the page to the specified payload page.
    *   'PAGE_INCREMENT' - Move to the next page.
-   *   'PAGE_DECREMENT' - Move to the previous page.
    *   'DOM_OBJECTS_CREATED' - Starts the module.
-   *   'QUERY_PAGE_NUMBER' - Requests the current page number
+   *   'ALL_MODULES_STARTED'  Fires when all modules are started.
    *
    * @param {string} notification the notification ID
    * @param {number} payload the page to change to/by
    */
   notificationReceived: function(notification, payload) {
     switch (notification) {
-      case 'PAGE_CHANGED':
-        Log.log('[Pages]: received a notification '
-          + `to change to page ${payload} of type ${typeof payload}`);
-        this.curPage = payload;
-        this.updatePages();
-        break;
       case 'PAGE_INCREMENT':
         Log.log('[Pages]: received a notification to increment pages!');
         this.changePageBy(payload, 1);
         this.updatePages();
         break;
-      case 'PAGE_DECREMENT':
-        Log.log('[Pages]: received a notification to decrement pages!');
-        // We can't just pass in -payload for situations where payload is null
-        // JS will coerce -payload to -0.
-        this.changePageBy(payload ? -payload : payload, -1);
-        this.updatePages();
-        break;
       case 'DOM_OBJECTS_CREATED':
         Log.log('[Pages]: received that all objects are created;'
           + 'will now hide things!');
-        this.sendNotification('MAX_PAGES_CHANGED', this.config.modules.length);
+        break;
+      case 'ALL_MODULES_STARTED':
+        this._modules = MM.getModules();
         this.animatePageChange();
         this.resetTimerWithDelay(0);
-        break;
-      case 'QUERY_PAGE_NUMBER':
-        this.sendNotification('PAGE_NUMBER_IS', this.curPage);
         break;
       default: // Do nothing
     }
@@ -116,12 +89,12 @@ Module.register('MMM-pages', {
     if (typeof amt === 'number' && !Number.isNaN(amt)) {
       this.curPage = this.mod(
         this.curPage + amt,
-        this.config.modules.length
+        this.config.numPages
       );
     } else if (typeof fallback === 'number') {
       this.curPage = this.mod(
         this.curPage + fallback,
-        this.config.modules.length
+        this.config.numPages
       );
     }
   },
@@ -132,7 +105,7 @@ Module.register('MMM-pages', {
    */
   updatePages: function() {
     // Update iff there's at least one page.
-    if (this.config.modules.length !== 0) {
+    if (this.config.numPages !== 0) {
       this.animatePageChange();
       this.resetTimerWithDelay(this.config.rotationDelay);
     } else { Log.error("[Pages]: Pages aren't properly defined!"); }
@@ -146,26 +119,27 @@ Module.register('MMM-pages', {
   animatePageChange: function() {
     const self = this;
 
-    // Hides all modules not on the current page. This hides any module not
-    // meant to be shown.
-    MM.getModules()
-      .exceptWithClass(this.config.fixed)
-      .exceptWithClass(this.config.modules[this.curPage])
-      .enumerate(module => module.hide(
+    //Get all the modules that need to be shown, you filter the array by the page number.
+    let modulesToShow = this._modules.filter(module => module.config.page === this.curPage)
+    //Get all the modules that need to be hidden.
+    let modulesToHide = this._modules.filter(module => module.config.page !== this.curPage);
+
+    //Hide the modules in the array to hide
+    modulesToHide.forEach(module => {
+      module.hide(
         self.config.animationTime / 2,
         { lockString: self.identifier }
-      ));
+      )
+    });
 
     // Shows all modules meant to be on the current page, after a small delay.
     setTimeout(() => {
-      MM.getModules()
-        .withClass(self.config.modules[self.curPage])
-        .enumerate((module) => {
-          module.show(
-            self.config.animationTime / 2,
-            { lockString: self.identifier }
-          );
-        });
+      modulesToShow.forEach(module => {
+        module.show(
+          self.config.animationTime / 2,
+          { lockString: self.identifier }
+        )
+      });
     }, this.config.animationTime / 2);
   },
 
